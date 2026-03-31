@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "aomc_utils",
+  "version": "${version}",
+  "name": "AOMC Utils",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/aomc_utils/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-datagen": [
+      "com.gentheowl.aomc_utils.client.AOMCUtilsDataGenerator"
+    ],
+    "client": [
+      "com.gentheowl.aomc_utils.client.AOMCUtilsClient"
+    ],
+    "main": [
+      "com.gentheowl.aomc_utils.AOMCUtils"
+    ]
+  },
+  "mixins": [
+    "aomc_utils.mixins.json",
+    {
+      "config": "aomc_utils.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
