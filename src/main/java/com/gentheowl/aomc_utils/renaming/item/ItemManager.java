@@ -1,138 +1,111 @@
-package com.gentheowl.aomc_utils.renaming;
+package com.gentheowl.aomc_utils.renaming.item;
 
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.component.type.NbtComponent;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
+import com.gentheowl.aomc_utils.AOMCUtils;
+import com.gentheowl.aomc_utils.renaming.utils.ConfigSettings;
+import com.gentheowl.aomc_utils.renaming.utils.RenameitConfig;
+import com.gentheowl.aomc_utils.renaming.utils.TextUtil;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.List;
+import java.util.*;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.item.component.ItemLore;
 
 public class ItemManager {
-    private static final int MAX_LORE = LoreComponent.MAX_LORES;
-    private static final int MODIFICATION_COST_LEVELS = 1;
+    public static final ItemModification<Component> MODIFY_NAME = new ItemModification<>(ConfigSettings.MODIFY_NAME, ItemManager::modifyName);
+    public static final ItemModification<List<Component>> SET_LORE = new ItemModification<>(ConfigSettings.SET_LORE, ItemManager::setLore);
+    public static final ItemModification<Component> PUSH_LORE = new ItemModification<>(ConfigSettings.PUSH_LORE, ItemManager::pushLore);
+    public static final ItemModification<Integer> REMOVE_LORE_LINE = new ItemModification<>(ConfigSettings.REMOVE_LORE, ItemManager::removeLoreLine);
+    public static final ItemModification<InsertLoreParams> INSERT_LORE_LINE = new ItemModification<>(ConfigSettings.INSERT_LORE, ItemManager::insertLoreLine);
+    public static final ItemModification<Boolean> GLINT = new ItemModification<>(ConfigSettings.GLINT, ItemManager::glint);
+    public static final ItemModification<SignParams> SIGN = new ItemModification<>(ConfigSettings.SIGN, ItemManager::sign);
+    public static final ItemModification<ServerPlayer> UNSIGN = new ItemModification<>(ConfigSettings.UNSIGN, ItemManager::unsign);
 
-    public static ItemModificationResult modifyName(ServerPlayerEntity player, Text name) {
-        return withValidatedStack(player, stack -> {
-            stack.set(DataComponentTypes.CUSTOM_NAME, name);
-            return ItemModificationResult.success("Item name set successfully!");
-
-        });
+    private static ItemModificationResult modifyName(ItemStack stack, Component name) {
+        stack.set(DataComponents.CUSTOM_NAME, name);
+        return ItemModificationResult.success("Item name set successfully!");
     }
 
-    public static ItemModificationResult setLore(ServerPlayerEntity player, List<Text> lines) {
-        return withValidatedStack(player, stack -> {
-            stack.set(DataComponentTypes.LORE, new LoreComponent(lines));
-            return ItemModificationResult.success("Lore set successfully!");
-        });
+    private static ItemModificationResult setLore(ItemStack stack, List<Component> lines) {
+        stack.set(DataComponents.LORE, new ItemLore(lines));
+        return ItemModificationResult.success("Lore set successfully!");
     }
 
-    public static ItemModificationResult pushLore(ServerPlayerEntity player, Text line) {
-        return withValidatedStack(player, stack -> {
-            LoreComponent lore = stack.getOrDefault(DataComponentTypes.LORE, LoreComponent.DEFAULT);
-            if (lore.lines().size() >= MAX_LORE) return ItemModificationResult.MAX_LORE_LINES;
+    private static ItemModificationResult pushLore(ItemStack stack, Component line) {
+        ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
+        if (lore.lines().size() >= RenameitConfig.get().max_lore_lines()) return ItemModificationResult.MAX_LORE_LINES;
 
-            stack.apply(DataComponentTypes.LORE, LoreComponent.DEFAULT, line, LoreComponent::with);
-            return ItemModificationResult.success("Lore added successfully!");
-        });
+        stack.update(DataComponents.LORE, ItemLore.EMPTY, line, ItemLore::withLineAdded);
+        return ItemModificationResult.success("Lore added successfully!");
     }
 
-    public static ItemModificationResult removeLoreLine(ServerPlayerEntity player, int index) {
-        return withValidatedStack(player, stack -> {
-            List<Text> lines = new ArrayList<>(stack.getOrDefault(DataComponentTypes.LORE, LoreComponent.DEFAULT).lines());
-            if (index < 0 || index >= lines.size()) return ItemModificationResult.OUT_OF_BOUNDS;
+    private static ItemModificationResult removeLoreLine(ItemStack stack, @Nullable Integer index) {
+        List<Component> lines = new ArrayList<>(stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY).lines());
+        if (lines.isEmpty()) return ItemModificationResult.failure("There is no lore to remove.");
 
-            lines.remove(index);
-            stack.set(DataComponentTypes.LORE, new LoreComponent(lines));
-            return ItemModificationResult.success("Lore removed successfully!");
-        });
+        if (index == null) { index = lines.size() - 1; }
+        if (index < 0 || index >= lines.size()) return ItemModificationResult.OUT_OF_BOUNDS;
+
+        lines.remove(index.intValue());
+        stack.set(DataComponents.LORE, new ItemLore(lines));
+        return ItemModificationResult.success("Lore removed successfully!");
     }
 
-    public static ItemModificationResult insertLoreLine(ServerPlayerEntity player, int index, Text line) {
-        return withValidatedStack(player, stack -> {
-            List<Text> lines = new ArrayList<>(stack.getOrDefault(DataComponentTypes.LORE, LoreComponent.DEFAULT).lines());
-            if (index < 0 || index > lines.size()) return ItemModificationResult.OUT_OF_BOUNDS;
-            if (lines.size() >= MAX_LORE) return ItemModificationResult.MAX_LORE_LINES;
+    public record InsertLoreParams(Integer index, Component line){}
+    private static ItemModificationResult insertLoreLine(ItemStack stack, InsertLoreParams params) {
+        List<Component> lines = new ArrayList<>(stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY).lines());
+        if (params.index < 0 || params.index > lines.size()) return ItemModificationResult.OUT_OF_BOUNDS;
+        if (lines.size() >= RenameitConfig.get().max_lore_lines()) return ItemModificationResult.MAX_LORE_LINES;
 
-            lines.add(index, line);
-            stack.set(DataComponentTypes.LORE, new LoreComponent(lines));
-            return ItemModificationResult.success("Lore inserted successfully!");
-        });
+        lines.add(params.index, params.line);
+        stack.set(DataComponents.LORE, new ItemLore(lines));
+        return ItemModificationResult.success("Lore inserted successfully!");
     }
 
-    public static ItemModificationResult glint(ServerPlayerEntity player, boolean value) {
-        return withValidatedStack(player, stack -> {
-            stack.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, value);
-            return ItemModificationResult.success("Glint " + (value ? "enabled" : "disabled") + " successfully!");
-        });
+    private static ItemModificationResult glint(ItemStack stack, boolean value) {
+        stack.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, value);
+        return ItemModificationResult.success("Glint " + (value ? "enabled" : "disabled") + " successfully!");
     }
 
-    public static ItemModificationResult sign(ServerPlayerEntity player, boolean withText) {
-        return withValidatedStack(player, stack -> {
-            if (withText) {
-                pushLore(player, TextUtil.signature(player.getName().getString()));
-            }
-            NbtCompound tag = new NbtCompound();
-            tag.putBoolean("signed", true);
-            tag.putString("signer", player.getUuidAsString());
-            stack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(tag));
-            return ItemModificationResult.success("You have signed this item! It can no longer be edited.");
-        });
+    public record SignParams(ServerPlayer player, Boolean withText) {}
+    private static ItemModificationResult sign(ItemStack stack, SignParams params) {
+        if (params.withText) {
+            pushLore(stack, TextUtil.signature(params.player.getName().getString()));
+        }
+        CompoundTag tag = new CompoundTag();
+        tag.putBoolean("signed", true);
+        tag.putString("signer", params.player.getStringUUID());
+        stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+        return ItemModificationResult.success("You have signed this item! It can no longer be edited.");
     }
 
-    public static ItemModificationResult unsign(ServerPlayerEntity player) {
-        ItemStack stack = player.getMainHandStack();
-        if (stack.isEmpty()) return ItemModificationResult.NO_ITEM_IN_HAND;
-        if (!isSigned(stack)) return ItemModificationResult.STACK_UNSIGNED;
-        if (missingLevels(player)) return ItemModificationResult.MISSING_LEVELS;
+    private static ItemModificationResult unsign(ItemStack stack, ServerPlayer player) {
         if (!isPlayerSigner(player, stack)) return ItemModificationResult.WRONG_SIGNER;
-        stack.remove(DataComponentTypes.CUSTOM_DATA);
-        if (stack.contains(DataComponentTypes.LORE)) {
-            LoreComponent lore = stack.getOrDefault(DataComponentTypes.LORE, LoreComponent.DEFAULT);
-            Deque<Text> original = new ArrayDeque<>(lore.lines());
+        stack.remove(DataComponents.CUSTOM_DATA);
+        if (stack.has(DataComponents.LORE)) {
+            ItemLore lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY);
+            Deque<Component> original = new ArrayDeque<>(lore.lines());
 
             if (!original.isEmpty()) {
-                Text last = original.peekLast();
+                Component last = original.peekLast();
                 if (last.getStyle().getFont().equals(TextUtil.UNFIFORM_FONT)) {
                     original.removeLast();
                 }
             }
-            stack.set(DataComponentTypes.LORE, new LoreComponent(List.copyOf(original)));
+            stack.set(DataComponents.LORE, new ItemLore(List.copyOf(original)));
         }
 
         return ItemModificationResult.success("The item has been unsigned and is now editable again.");
     }
 
-    private static ItemModificationResult withValidatedStack(ServerPlayerEntity player, java.util.function.Function<ItemStack, ItemModificationResult> fn) {
-        ItemStack stack = player.getMainHandStack();
-        if (stack.isEmpty()) return ItemModificationResult.NO_ITEM_IN_HAND;
-        if (isSigned(stack)) return ItemModificationResult.STACK_SIGNED;
-        if (missingLevels(player)) return ItemModificationResult.MISSING_LEVELS;
-
-        ItemModificationResult result = fn.apply(stack);
-        if (result.isSuccess()) {
-            player.addExperienceLevels(-1);
-        }
-        return result;
-    }
-
-    private static boolean isSigned(ItemStack stack) {
-        NbtComponent nbt = stack.getOrDefault(DataComponentTypes.CUSTOM_DATA, NbtComponent.DEFAULT);
-        return (nbt.contains("signed"));
-    }
-
-    private static boolean missingLevels(ServerPlayerEntity player) {
-        return player.experienceLevel < MODIFICATION_COST_LEVELS;
-    }
-
-    private static boolean isPlayerSigner(ServerPlayerEntity player, ItemStack stack) {
-        NbtComponent nbt = stack.getOrDefault(DataComponentTypes.CUSTOM_DATA, NbtComponent.DEFAULT);
+    private static boolean isPlayerSigner(ServerPlayer player, ItemStack stack) {
+        CustomData nbtComp = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY);
+        CompoundTag nbt = nbtComp.copyTag();
         if (!nbt.contains("signed")) return false;
-        return nbt.copyNbt().getString("signer", "").equals(player.getUuidAsString());
+        return nbt.getStringOr("signer", "").equals(player.getStringUUID());
     }
 }

@@ -11,7 +11,7 @@
   "environment": "*",
   "entrypoints": {
     "fabric-datagen": [
-      "com.gentheowl.aomc_utils.client.AOMCUtilsDataGenerator"
+      "com.gentheowl.aomc_utils.datagen.AOMCUtilsDataGenerator"
     ],
     "client": [
       "com.gentheowl.aomc_utils.client.AOMCUtilsClient"
@@ -30,6 +30,7 @@
   "depends": {
     "fabricloader": ">=${loader_version}",
     "fabric": "*",
-    "minecraft": "${minecraft_version}"
+    "minecraft": "${minecraft_version}",
+    "fabric-permissions-api-v0": "*"
   }
 }

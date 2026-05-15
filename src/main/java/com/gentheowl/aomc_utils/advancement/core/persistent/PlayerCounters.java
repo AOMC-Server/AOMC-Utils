@@ -1,4 +1,4 @@
-package com.gentheowl.aomc_utils.advancement.core;
+package com.gentheowl.aomc_utils.advancement.core.persistent;
 
 import com.gentheowl.aomc_utils.AOMCUtils;
 import com.mojang.serialization.Codec;
@@ -11,6 +11,18 @@ import net.minecraft.resources.Identifier;
 
 @SuppressWarnings("UnstableApiUsage")
 public final class PlayerCounters {
+    public static final AttachmentType<StrongholdVisits> STRONGHOLD_VISITS = StrongholdVisits.getCounter();
+
+    public static StrongholdVisits strongholds(AttachmentTarget target) {
+        StrongholdVisits visits = target.getAttached(STRONGHOLD_VISITS);
+        if (visits == null) {
+            visits = new StrongholdVisits();
+            target.setAttached(STRONGHOLD_VISITS, visits);
+        }
+
+        return visits;
+    }
+
     public enum CounterKey {
         DRAGON_KILLS("dragon_kills"),
         WARDEN_KILLS("warden_kills"),
@@ -65,7 +77,6 @@ public final class PlayerCounters {
         Identifier id = Identifier.fromNamespaceAndPath(AOMCUtils.MOD_ID, path);
         return AttachmentRegistry.create(id, builder -> builder
                 .initializer(() -> 0)
-                .syncWith(ByteBufCodecs.INT, AttachmentSyncPredicate.all())
                 .persistent(Codec.INT)
                 .copyOnDeath()
         );

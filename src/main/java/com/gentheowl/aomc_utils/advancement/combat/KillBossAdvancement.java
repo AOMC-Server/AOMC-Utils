@@ -1,14 +1,10 @@
-package com.gentheowl.aomc_utils.advancement;
+package com.gentheowl.aomc_utils.advancement.combat;
 
-import com.gentheowl.aomc_utils.AOMCUtils;
-import com.gentheowl.aomc_utils.advancement.core.PlayerCounters;
+import com.gentheowl.aomc_utils.advancement.core.persistent.PlayerCounters;
 import com.gentheowl.aomc_utils.advancement.core.SimpleAdvancement;
 import com.gentheowl.aomc_utils.datagen.ModAdvancements;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
-import net.fabricmc.fabric.api.event.Event;
 import net.minecraft.advancements.AdvancementHolder;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
@@ -41,7 +37,6 @@ public final class KillBossAdvancement extends SimpleAdvancement {
             if (!hasParent(player) || hasThis(player)) return;
             PlayerCounters.CounterKey key = BOSS_COUNTERS.get(killed.getType());
             if (key == null) return;
-
             if (!incrementOnce(player, key)) return;
 
             if (get(player, PlayerCounters.CounterKey.DRAGON_KILLS) > 0

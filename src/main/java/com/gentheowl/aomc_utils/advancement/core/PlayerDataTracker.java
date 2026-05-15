@@ -1,4 +1,4 @@
-package com.gentheowl.aomc_utils.advancement;
+package com.gentheowl.aomc_utils.advancement.core;
 
 public class PlayerDataTracker {
 }

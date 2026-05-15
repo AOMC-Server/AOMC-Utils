@@ -4,6 +4,13 @@
   "package": "com.gentheowl.aomc_utils.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "ContainerEntityMixin",
+    "DaylightDetectorMixin",
+    "FallingBlockEntityMixin",
+    "RandomizableContainerMixin",
+    "ServerPlayerMixin",
+    "StructureTemplateAccessor",
+    "VaultBlockEntityServerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

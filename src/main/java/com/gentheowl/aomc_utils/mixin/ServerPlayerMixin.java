@@ -4,7 +4,6 @@ import com.gentheowl.aomc_utils.advancement.core.AdvancementPolicies;
 import com.gentheowl.aomc_utils.advancement.explore.FlyDistanceAdvancement;
 import com.gentheowl.aomc_utils.advancement.explore.WalkDistanceAdvancement;
 import com.gentheowl.aomc_utils.advancement.wealth.*;
-import com.gentheowl.aomc_utils.water.WaterDamageHandler;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.stats.Stat;
@@ -21,11 +20,6 @@ import java.util.OptionalInt;
 
 @Mixin(ServerPlayer.class)
 public abstract class ServerPlayerMixin {
-    @Inject(method = "tick", at = @At("TAIL"))
-    private void aomcutils_onTick(CallbackInfo ci) {
-        WaterDamageHandler.onPlayerTick((ServerPlayer) (Object) this);
-    }
-
     @Inject(method = "awardStat", at = @At("TAIL"))
     private void aomcutils_onAwardStat(Stat<?> stat, int amount, CallbackInfo ci) {
         ServerPlayer self = (ServerPlayer) (Object) this;

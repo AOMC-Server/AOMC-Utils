@@ -1,4 +1,4 @@
-package com.gentheowl.aomc_utils.election;
+package com.gentheowl.aomc_utils.election.data;
 
 import java.util.List;
 

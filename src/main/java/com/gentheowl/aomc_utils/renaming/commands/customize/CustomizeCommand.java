@@ -1,17 +1,20 @@
-package com.gentheowl.aomc_utils.renaming.commands;
+package com.gentheowl.aomc_utils.renaming.commands.customize;
 
-import com.gentheowl.aomc_utils.renaming.utils.TextUtil;
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
+import com.gentheowl.aomc_utils.AOMCUtils;
+import com.gentheowl.aomc_utils.renaming.commands.CommandRoot;
+import com.gentheowl.aomc_utils.renaming.commands.Subcommand;
+import com.gentheowl.aomc_utils.renaming.utils.ConfigSettings;
+import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.minecraft.commands.CommandSourceStack;
 import java.util.List;
 
-public class CustomizeCommand {
+public class CustomizeCommand extends CommandRoot {
+    private CustomizeCommand() {}
+    private static final CustomizeCommand INSTANCE = new CustomizeCommand();
+    public static CustomizeCommand getInstance() { return INSTANCE; }
+
     private static final String ROOT = "customize";
-    private static final List<DescribableCommand> SUBCOMMANDS = List.of(
+    private static final List<Subcommand> SUBCOMMANDS = List.of(
             new NameSubcommand(),
             new LoreSubcommand(),
             new GlintSubcommand(),
@@ -19,34 +22,18 @@ public class CustomizeCommand {
             new UnsignSubcommand()
     );
 
-    public static LiteralArgumentBuilder<ServerCommandSource> register() {
-        LiteralArgumentBuilder<ServerCommandSource> root =
-                CommandManager.literal(ROOT)
-                        .requires(src -> src.hasPermissionLevel(0))
-                        .executes(ctx -> {
-                            sendHelp(ctx.getSource());
-                            return 1;
-                        });
-
-        for (DescribableCommand sub : SUBCOMMANDS) {
-            root.then(sub.attach());
-        }
-
-        return root;
+    @Override
+    public String getRootName() {
+        return ROOT;
     }
 
-    public static void sendHelp(ServerCommandSource src) {
-        src.sendFeedback(() -> TextUtil.header("/" + ROOT + " Commands"), false);
-        for (DescribableCommand sub : SUBCOMMANDS) {
-            Text cmdLine = Text.literal("• ")
-                    .append(Text.literal("/" + ROOT + " " + sub.getName())
-                            .styled(s -> s.withColor(Formatting.AQUA)))
-                    .append(Text.literal(" " + sub.getUsage()).styled(s -> s.withColor(Formatting.DARK_AQUA)));
-            src.sendFeedback(() -> cmdLine, false);
+    @Override
+    public List<Subcommand> getSubcommands() {
+        return SUBCOMMANDS;
+    }
 
-            Text descLine = Text.literal("    " + sub.getDescription())
-                    .styled(s -> s.withColor(Formatting.GRAY).withItalic(true));
-            src.sendFeedback(() -> descLine, false);
-        }
+    @Override
+    protected boolean getRequiredPermissions(CommandSourceStack source) {
+        return !AOMCUtils.CONFIG.shouldUsePermissionsAPI() || Permissions.check(source, "renameit.customize");
     }
 }

@@ -1,12 +1,11 @@
-package com.gentheowl.aomc_utils.advancement;
+package com.gentheowl.aomc_utils.advancement.combat;
 
 
-import com.gentheowl.aomc_utils.advancement.core.PlayerCounters;
+import com.gentheowl.aomc_utils.advancement.core.persistent.PlayerCounters;
 import com.gentheowl.aomc_utils.advancement.core.SimpleAdvancement;
 import com.gentheowl.aomc_utils.datagen.ModAdvancements;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
 import net.minecraft.advancements.AdvancementHolder;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
