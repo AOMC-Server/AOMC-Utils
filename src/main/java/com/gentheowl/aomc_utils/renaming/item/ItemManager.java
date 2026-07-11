@@ -79,6 +79,7 @@ public class ItemManager {
         CompoundTag tag = new CompoundTag();
         tag.putBoolean("signed", true);
         tag.putString("signer", params.player.getStringUUID());
+        tag.putString("signer_name", params.player.getName().getString());
         stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
         return ItemModificationResult.success("You have signed this item! It can no longer be edited.");
     }

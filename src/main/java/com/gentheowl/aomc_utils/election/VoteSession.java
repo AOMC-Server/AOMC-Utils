@@ -47,7 +47,7 @@ public class VoteSession {
 
         Component message = Component.literal("Item " + (currentIndex+1) + ": " + question.getText() + (condorcet ? " (Click options in the order you prefer to rank them)" : ""))
                 .setStyle(Style.EMPTY.withColor(ChatFormatting.AQUA));
-        player.displayClientMessage(message, false);
+        player.sendSystemMessage(message);
 
         // list options
         int optionCount = question.getOptions().size();
@@ -75,7 +75,7 @@ public class VoteSession {
                         .append(Component.literal(" (Click to choose)"));
             }
 
-            player.displayClientMessage(optionLine, false);
+            player.sendSystemMessage(optionLine);
         }
 
         // show skip option (works for both types; skips whole question)
@@ -83,12 +83,12 @@ public class VoteSession {
                 .setStyle(Style.EMPTY.withColor(ChatFormatting.GRAY)
                         .withClickEvent(new ClickEvent.RunCommand("/vote skip")))
                 .append(Component.literal(" (Click to skip question)"));
-        player.displayClientMessage(skipLine, false);
+        player.sendSystemMessage(skipLine);
 
         // condorcet progress message
         if (condorcet) {
-            player.displayClientMessage(Component.literal("Progress: " + currentRanking.size() + " / " + optionCount + " picked.")
-                    .setStyle(Style.EMPTY.withColor(ChatFormatting.YELLOW)), false);
+            player.sendSystemMessage(Component.literal("Progress: " + currentRanking.size() + " / " + optionCount + " picked.")
+                    .setStyle(Style.EMPTY.withColor(ChatFormatting.YELLOW)));
         }
     }
 
@@ -111,7 +111,7 @@ public class VoteSession {
 
         // validate choice index
         if (idx < 0 || idx >= optionCount) {
-            player.displayClientMessage(Component.literal("Invalid choice number.").setStyle(Style.EMPTY.withColor(ChatFormatting.RED)), false);
+            player.sendSystemMessage(Component.literal("Invalid choice number.").setStyle(Style.EMPTY.withColor(ChatFormatting.RED)));
             return;
         }
 
@@ -121,13 +121,13 @@ public class VoteSession {
 
             // prevent picking the same option twice
             if (currentRanking.contains(idx)) {
-                player.displayClientMessage(Component.literal("That option is already chosen — pick a different one.").setStyle(Style.EMPTY.withColor(ChatFormatting.RED)), false);
+                player.sendSystemMessage(Component.literal("That option is already chosen — pick a different one.").setStyle(Style.EMPTY.withColor(ChatFormatting.RED)));
                 return;
             }
 
             // add picked option as the next rank
             currentRanking.add(idx);
-            player.displayClientMessage(Component.literal("Picked \"" + question.getOptions().get(idx) + "\" as #" + currentRanking.size()).setStyle(Style.EMPTY.withColor(ChatFormatting.GREEN)), false);
+            player.sendSystemMessage(Component.literal("Picked \"" + question.getOptions().get(idx) + "\" as #" + currentRanking.size()).setStyle(Style.EMPTY.withColor(ChatFormatting.GREEN)));
 
             // if we've picked all options, finalize the ranking and advance
             if (currentRanking.size() == optionCount) {
@@ -147,8 +147,8 @@ public class VoteSession {
     }
 
     public void finish() {
-        player.displayClientMessage(Component.literal("Thank you for voting! Your responses have been recorded")
-                .setStyle(Style.EMPTY.withColor(ChatFormatting.GREEN)), false);
+        player.sendSystemMessage(Component.literal("Thank you for voting! Your responses have been recorded")
+                .setStyle(Style.EMPTY.withColor(ChatFormatting.GREEN)));
         saveResults();
     }
 

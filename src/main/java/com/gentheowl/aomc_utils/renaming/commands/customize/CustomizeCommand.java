@@ -19,7 +19,8 @@ public class CustomizeCommand extends CommandRoot {
             new LoreSubcommand(),
             new GlintSubcommand(),
             new SignSubcommand(),
-            new UnsignSubcommand()
+            new UnsignSubcommand(),
+            new CheckSubcommand()
     );
 
     @Override

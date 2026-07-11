@@ -42,12 +42,13 @@ public class VisitStrongholdsAdvancement extends SimpleAdvancement {
     }
 
     private void onServerTick(MinecraftServer server) {
+        if (advancement == null) return;
+
         int tick = server.getTickCount();
         if (tick % CHECK_EVERY != 0 ) return;
 
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            if (advancement == null) continue;
-            if (!hasParent(player) || hasThis(player)) return;
+            if (!hasParent(player) || hasThis(player)) continue;
             ServerLevel level = player.level();
 
             long key = strongholdKeyAt(level, player.blockPosition());
@@ -55,14 +56,11 @@ public class VisitStrongholdsAdvancement extends SimpleAdvancement {
 
             if (key == Long.MIN_VALUE) {
                 visits.clearLast();
-                continue;
+            } else {
+                visits.recordIfNew(key);
             }
 
-            if(!visits.recordIfNew(key)) continue;
-
-            int now = visits.count();
-
-            if (now >= TARGET) {
+            if (visits.count() >= TARGET) {
                 complete(player);
                 AdvancementPolicies.get(BMPOATAdvancement.class).onBranchEnd(player);
             }

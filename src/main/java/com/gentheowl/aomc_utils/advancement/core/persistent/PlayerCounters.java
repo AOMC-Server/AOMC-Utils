@@ -62,14 +62,10 @@ public final class PlayerCounters {
         }
 
         public int increment(CounterKey key) {
-            AttachmentType<Integer> type = key.type();
-
-            Integer v = target.modifyAttached(type, n -> (n == null ? 0 : n) + 1);
-            if (v == null) {
-                target.setAttached(type, 1);
-                return 1;
-            }
-            return v;
+            // setAttached/modifyAttached return the PREVIOUS value, so compute the new one ourselves
+            int now = get(key) + 1;
+            target.setAttached(key.type(), now);
+            return now;
         }
     }
 

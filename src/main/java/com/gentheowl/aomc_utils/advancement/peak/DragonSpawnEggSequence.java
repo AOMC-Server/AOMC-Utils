@@ -12,6 +12,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.level.block.Block;
@@ -39,7 +40,7 @@ public final class DragonSpawnEggSequence {
     private DragonSpawnEggSequence(ServerLevel level, BlockPos beaconPos) {
         this.level = level;
         this.beaconPos = beaconPos.immutable();
-        this.rng = level.random;
+        this.rng = level.getRandom();
     }
 
     public static void start(ServerLevel level, BlockPos beaconPos) {
@@ -147,7 +148,7 @@ public final class DragonSpawnEggSequence {
         double y = beaconPos.getY() + 1.0;
         double z = beaconPos.getZ() + 0.5;
 
-        LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(level, EntitySpawnReason.TRIGGERED);
+        LightningBolt bolt = EntityTypes.LIGHTNING_BOLT.create(level, EntitySpawnReason.TRIGGERED);
         if (bolt == null) return;
 
         bolt.setPos(new Vec3(x, y, z));

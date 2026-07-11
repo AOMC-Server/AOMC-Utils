@@ -3,11 +3,12 @@ package com.gentheowl.aomc_utils.advancement.combat;
 import com.gentheowl.aomc_utils.advancement.core.persistent.PlayerCounters;
 import com.gentheowl.aomc_utils.advancement.core.SimpleAdvancement;
 import com.gentheowl.aomc_utils.datagen.ModAdvancements;
-import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 
 import java.util.Map;
 
@@ -15,10 +16,10 @@ public final class KillBossAdvancement extends SimpleAdvancement {
     private final AdvancementHolder advancement;
     private static final Map<EntityType<?>, PlayerCounters.CounterKey> BOSS_COUNTERS =
             Map.of(
-                    EntityType.ENDER_DRAGON, PlayerCounters.CounterKey.DRAGON_KILLS,
-                    EntityType.WARDEN, PlayerCounters.CounterKey.WARDEN_KILLS,
-                    EntityType.WITHER, PlayerCounters.CounterKey.WITHER_KILLS,
-                    EntityType.ELDER_GUARDIAN, PlayerCounters.CounterKey.ELDER_GUARDIAN_KILLS
+                    EntityTypes.ENDER_DRAGON, PlayerCounters.CounterKey.DRAGON_KILLS,
+                    EntityTypes.WARDEN, PlayerCounters.CounterKey.WARDEN_KILLS,
+                    EntityTypes.WITHER, PlayerCounters.CounterKey.WITHER_KILLS,
+                    EntityTypes.ELDER_GUARDIAN, PlayerCounters.CounterKey.ELDER_GUARDIAN_KILLS
             );
 
     public KillBossAdvancement(MinecraftServer server) {
@@ -32,8 +33,8 @@ public final class KillBossAdvancement extends SimpleAdvancement {
 
     @Override
     public void register() {
-        ServerEntityCombatEvents.AFTER_KILLED_OTHER_ENTITY.register((world, attacker, killed, damageSource) -> {
-            if (!(attacker instanceof ServerPlayer player)) return;
+        ServerLivingEntityEvents.AFTER_DEATH.register((killed, damageSource) -> {
+            if (!(killed.getKillCredit() instanceof ServerPlayer player)) return;
             if (!hasParent(player) || hasThis(player)) return;
             PlayerCounters.CounterKey key = BOSS_COUNTERS.get(killed.getType());
             if (key == null) return;

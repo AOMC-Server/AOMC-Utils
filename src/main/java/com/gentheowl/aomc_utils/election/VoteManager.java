@@ -102,8 +102,8 @@ public class VoteManager {
 
     public static void startSession(ServerPlayer player) {
         if (!votingEnabled) {
-            player.displayClientMessage(Component.literal("Voting is currently disabled by an administrator.")
-                    .setStyle(Style.EMPTY.withColor(ChatFormatting.RED)), false);
+            player.sendSystemMessage(Component.literal("Voting is currently disabled by an administrator.")
+                    .setStyle(Style.EMPTY.withColor(ChatFormatting.RED)));
             return;
         }
 
@@ -111,23 +111,22 @@ public class VoteManager {
 
         // check eligibility
         if (!eligibility.getOrDefault(uuid, false)) {
-            player.displayClientMessage(Component.literal("You are not eligible to vote (insufficient playtime).")
-                    .setStyle(Style.EMPTY.withColor(ChatFormatting.RED)), false);
+            player.sendSystemMessage(Component.literal("You are not eligible to vote (insufficient playtime).")
+                    .setStyle(Style.EMPTY.withColor(ChatFormatting.RED)));
             return;
         }
 
         // already in-progress
         if (sessions.containsKey(uuid)) {
-            player.displayClientMessage(Component.literal("You are already voting or finished voting!")
-                    .setStyle(Style.EMPTY.withColor(ChatFormatting.RED)), false);
+            player.sendSystemMessage(Component.literal("You are already voting or finished voting!")
+                    .setStyle(Style.EMPTY.withColor(ChatFormatting.RED)));
             return;
         }
 
         // already voted (results file exists) — prevent another vote
-        Path resultFile = RESULTS_DIR.resolve(uuid + ".json");
-        if (Files.exists(resultFile)) {
-            player.displayClientMessage(Component.literal("You have already submitted your vote and cannot start another one.")
-                    .setStyle(Style.EMPTY.withColor(ChatFormatting.RED)), false);
+        if (hasVoted(uuid)) {
+            player.sendSystemMessage(Component.literal("You have already submitted your vote and cannot start another one.")
+                    .setStyle(Style.EMPTY.withColor(ChatFormatting.RED)));
             return;
         }
 
@@ -138,12 +137,12 @@ public class VoteManager {
 
     private static boolean isSessionInvalid(ServerPlayer player, VoteSession session) {
         if (session == null) {
-            player.displayClientMessage(Component.literal("You have no active vote session. Use /vote to start.").setStyle(Style.EMPTY.withColor(ChatFormatting.RED)), false);
+            player.sendSystemMessage(Component.literal("You have no active vote session. Use /vote to start.").setStyle(Style.EMPTY.withColor(ChatFormatting.RED)));
             return true;
         }
         if (session.isExpired()) {
             sessions.remove(player.getUUID());
-            player.displayClientMessage(Component.literal("Vote session timed out. Use /vote to try again.").setStyle(Style.EMPTY.withColor(ChatFormatting.RED)), false);
+            player.sendSystemMessage(Component.literal("Vote session timed out. Use /vote to try again.").setStyle(Style.EMPTY.withColor(ChatFormatting.RED)));
             return true;
         }
 
@@ -182,6 +181,10 @@ public class VoteManager {
 
     public static void cancelSession(UUID playerUuid) {
         sessions.remove(playerUuid);
+    }
+
+    public static boolean hasVoted(UUID uuid) {
+        return Files.exists(RESULTS_DIR.resolve(uuid + ".json"));
     }
 
     public static boolean isVotingEnabled() {

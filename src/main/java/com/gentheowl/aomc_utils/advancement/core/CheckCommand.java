@@ -33,7 +33,7 @@ public class CheckCommand {
             }, builder);
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        dispatcher.register(Commands.literal("check")
+        dispatcher.register(Commands.literal("progress")
                 .executes(ctx -> showAllCounters(ctx.getSource()))
                 .then(Commands.argument("counter", StringArgumentType.string())
                         .suggests(COUNTER_SUGGESTIONS)

@@ -37,7 +37,10 @@ public class TextUtil {
     public static Component parse(String input, CommandSourceStack src) {
         String sanitized = FONT_TAG.matcher(input).replaceAll(m ->
                 "<font:" + m.group(1).toLowerCase().replaceAll("[^a-z0-9/._:-]", "_") + ">");
-        return PARSER.parseText(sanitized, PlaceholderContext.of(src).asParserContext());
+        PlaceholderContext ctx = src.getEntity() != null
+                ? PlaceholderContext.of(src.getEntity())
+                : PlaceholderContext.of(src.getLevel());
+        return PARSER.parseComponent(sanitized, ctx.asParserContext());
     }
 
     public static Component signature(String name) {

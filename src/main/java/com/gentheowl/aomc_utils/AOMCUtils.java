@@ -1,12 +1,15 @@
 package com.gentheowl.aomc_utils;
 
 import com.gentheowl.aomc_utils.advancement.core.AdvancementPolicies;
+import com.gentheowl.aomc_utils.advancement.core.CheckCommand;
+import com.gentheowl.aomc_utils.debug.RestartDetectorCommand;
 import com.gentheowl.aomc_utils.election.ElectionManager;
 import com.gentheowl.aomc_utils.election.VoteEvents;
 import com.gentheowl.aomc_utils.motd.MotdManager;
 import com.gentheowl.aomc_utils.renaming.commands.CommandRegistry;
 import com.gentheowl.aomc_utils.renaming.utils.RenameitConfig;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
@@ -20,6 +23,10 @@ public class AOMCUtils implements ModInitializer {
     @Override
     public void onInitialize() {
         CommandRegistry.registerCommands();
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            CheckCommand.register(dispatcher);
+            RestartDetectorCommand.register(dispatcher);
+        });
         ElectionManager.initialize();
         VoteEvents.register();
 
