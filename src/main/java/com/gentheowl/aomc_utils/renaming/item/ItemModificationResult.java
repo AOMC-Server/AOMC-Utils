@@ -37,7 +37,7 @@ public class ItemModificationResult {
     }
 
     public static ItemModificationResult failure(String message) {
-        return new ItemModificationResult(true, TextUtil.error(message));
+        return new ItemModificationResult(false, TextUtil.error(message));
     }
 
     public boolean isSuccess() {

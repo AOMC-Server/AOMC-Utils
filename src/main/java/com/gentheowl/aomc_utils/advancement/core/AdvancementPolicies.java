@@ -1,9 +1,11 @@
 package com.gentheowl.aomc_utils.advancement.core;
 
+import com.gentheowl.aomc_utils.AOMCUtils;
 import com.gentheowl.aomc_utils.advancement.combat.Kill1000EndermenAdvancement;
 import com.gentheowl.aomc_utils.advancement.combat.Kill1000PiglinsAdvancement;
 import com.gentheowl.aomc_utils.advancement.combat.Kill1000ZombiesAdvancement;
 import com.gentheowl.aomc_utils.advancement.combat.KillBossAdvancement;
+import com.gentheowl.aomc_utils.advancement.combat.KillManyMobsAdvancement;
 import com.gentheowl.aomc_utils.advancement.explore.*;
 import com.gentheowl.aomc_utils.advancement.peak.BMPOATAdvancement;
 import com.gentheowl.aomc_utils.advancement.wealth.*;
@@ -24,6 +26,7 @@ public final class AdvancementPolicies {
         put(new Kill1000ZombiesAdvancement(server));
         put(new Kill1000PiglinsAdvancement(server));
         put(new Kill1000EndermenAdvancement(server));
+        put(new KillManyMobsAdvancement(server));
         put(new LootGeneratedChestsAdvancement(server));
         put(new LootTrialVaultsAdvancement(server));
         put(new WalkDistanceAdvancement(server));
@@ -40,6 +43,8 @@ public final class AdvancementPolicies {
         for (SimpleAdvancement adv : REGISTRY.values()) {
             adv.register();
         }
+
+        AOMCUtils.LOGGER.info("Registered {} advancement handlers", REGISTRY.size());
     }
 
     private static void put(SimpleAdvancement adv) {

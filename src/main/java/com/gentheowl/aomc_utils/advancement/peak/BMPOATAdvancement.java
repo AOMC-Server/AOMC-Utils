@@ -59,14 +59,26 @@ public final class BMPOATAdvancement extends SimpleAdvancement {
             BlockPos beaconPos = hit.getBlockPos();
             if (!world.getBlockState(beaconPos).is(Blocks.BEACON)) return InteractionResult.PASS;
 
+            // TODO(debug): temporary BMPOAT logging — remove once egg spawn is confirmed
+            AOMCUtils.LOGGER.info("[BMPOAT] beacon clicked at {} by {}", beaconPos, sp.getName().getString());
+
             // Summit should only be actionable once the gate is granted (i.e., all 3 branches done).
             if (!isGateGranted(sp)) {
+                AOMCUtils.LOGGER.info("[BMPOAT] gate not granted (gate holder={}), bailing", gate);
                 return InteractionResult.PASS;
             }
 
-            if (advancement() == null || hasThis(sp)) return InteractionResult.PASS;
+            if (advancement() == null) {
+                AOMCUtils.LOGGER.info("[BMPOAT] summit advancement holder is null, bailing");
+                return InteractionResult.PASS;
+            }
+            if (hasThis(sp)) {
+                AOMCUtils.LOGGER.info("[BMPOAT] player already has summit advancement, bailing");
+                return InteractionResult.PASS;
+            }
 
             if (matchesOlympus((ServerLevel) world, beaconPos)) {
+                AOMCUtils.LOGGER.info("[BMPOAT] template matched, spawning egg + completing");
                 spawnEgg((ServerLevel) world, beaconPos);
                 complete(sp);
                 return InteractionResult.CONSUME;
@@ -121,7 +133,10 @@ public final class BMPOATAdvancement extends SimpleAdvancement {
         StructurePlaceSettings settings = new StructurePlaceSettings(); // no rotation/mirror
 
         var palettes = ((StructureTemplateAccessor) template).aomc$getPalettes();
-        if (palettes.isEmpty()) return false;
+        if (palettes.isEmpty()) {
+            AOMCUtils.LOGGER.info("[BMPOAT] template {} has no palettes (empty/missing template?)", TEMPLATE_ID);
+            return false;
+        }
 
         StructureTemplate.Palette palette = settings.getRandomPalette(palettes, clickedBeaconPos);
         var infos = palette.blocks();
@@ -138,9 +153,14 @@ public final class BMPOATAdvancement extends SimpleAdvancement {
                     origin.getY() + lp.getY(),
                     origin.getZ() + lp.getZ());
 
-            if (level.getBlockState(wp).getBlock() != expected) return false;
+            if (level.getBlockState(wp).getBlock() != expected) {
+                AOMCUtils.LOGGER.info("[BMPOAT] mismatch at {} (local {}): expected {}, found {}",
+                        wp, lp, expected, level.getBlockState(wp).getBlock());
+                return false;
+            }
         }
 
+        AOMCUtils.LOGGER.info("[BMPOAT] all {} template blocks matched", infos.size());
         return true;
     }
 

@@ -26,12 +26,10 @@ public final class KillManyMobsAdvancement extends SimpleAdvancement {
 
     @Override
     public void register() {
-        // Kill-credit attribution (like vanilla kill stats): counts mobs that die to
-        // fall/environment shortly after the player hit them, not just direct killing blows.
         ServerLivingEntityEvents.AFTER_DEATH.register((killed, damageSource) -> {
+            if (!(killed instanceof Mob)) return;
             if (!(killed.getKillCredit() instanceof ServerPlayer player)) return;
             if (!hasParent(player) || hasThis(player)) return;
-            if (!(killed instanceof Mob)) return;
 
             int now = increment(player, PlayerCounters.CounterKey.MOB_KILLS);
 

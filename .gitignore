@@ -117,6 +117,7 @@ runs/
 
 # Fabric data generation output
 src/main/generated/
+src/main/resources/data/
 
 # Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
 !gradle-wrapper.jar
