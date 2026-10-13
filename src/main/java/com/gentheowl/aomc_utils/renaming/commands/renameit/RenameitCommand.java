@@ -1,13 +1,9 @@
 package com.gentheowl.aomc_utils.renaming.commands.renameit;
 
-import com.gentheowl.aomc_utils.AOMCUtils;
 import com.gentheowl.aomc_utils.renaming.commands.CommandRoot;
 import com.gentheowl.aomc_utils.renaming.commands.Subcommand;
-import com.gentheowl.aomc_utils.renaming.commands.customize.CustomizeCommand;
-import me.lucko.fabric.api.permissions.v0.Permissions;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
 import java.util.List;
+import parliament.api.permission.PermissionLevel;
 
 public class RenameitCommand extends CommandRoot {
     private RenameitCommand() {}
@@ -34,9 +30,13 @@ public class RenameitCommand extends CommandRoot {
     }
 
     @Override
-    protected boolean getRequiredPermissions(CommandSourceStack source) {
-        return AOMCUtils.CONFIG.shouldUsePermissionsAPI()
-                ? Permissions.check(source, "renameit.renameit")
-                : Commands.hasPermission(Commands.LEVEL_ADMINS).test(source);
+    protected String getPermissionNode() {
+        return "renameit.renameit";
+    }
+
+    @Override
+    protected PermissionLevel getPermissionFallback() {
+        // Matches the old vanilla op-level gate (Commands.LEVEL_ADMINS).
+        return PermissionLevel.ADMIN;
     }
 }

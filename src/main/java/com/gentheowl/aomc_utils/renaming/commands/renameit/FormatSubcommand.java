@@ -1,50 +1,37 @@
 package com.gentheowl.aomc_utils.renaming.commands.renameit;
 
-import com.gentheowl.aomc_utils.AOMCUtils;
 import com.gentheowl.aomc_utils.renaming.commands.CommandRoot;
 import com.gentheowl.aomc_utils.renaming.commands.Subcommand;
 import com.gentheowl.aomc_utils.renaming.item.ItemModificationResult;
 import com.gentheowl.aomc_utils.renaming.utils.ConfigSettings;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
-import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.builder.ArgumentBuilder;
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.suggestion.SuggestionProvider;
-import org.apache.logging.log4j.core.jmx.Server;
+import com.gentheowl.aomc_utils.renaming.utils.RenameitConfig;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
+import parliament.api.command.Argument;
+import parliament.api.command.Command;
+import parliament.api.command.CommandContext;
+import parliament.api.command.SuggestionProvider;
 
 public class FormatSubcommand implements Subcommand {
     private static final String NAME = "format";
     private static final String DESC = "Allows you to set the text formatting options for customization.";
     private static final String USAGE = "<simplified | markdown | legacyAll | legacyColor>...";
 
-    private static final SuggestionProvider<CommandSourceStack> FMT_SUGGESTIONS = (ctx, builder) -> {
-        List<String> used = new ArrayList<>();
+    /** Suggests the formats not already used by the arguments before this one. */
+    private static SuggestionProvider formatSuggestions(int index) {
+        return ctx -> {
+            List<String> used = collectFormats(ctx, index - 1);
 
-        ctx.getNodes().forEach(node -> {
-            String name = node.getNode().getName();
-            if (name.startsWith("format")) {
-                try {
-                    String value = ctx.getArgument(name, String.class);
-                    used.add(value);
-                } catch (IllegalArgumentException ignored) {}
+            List<String> suggestions = new ArrayList<>();
+            for (String fmt : ConfigSettings.ALLOWED_TEXT_FORMATS) {
+                if (!used.contains(fmt)) {
+                    suggestions.add(fmt);
+                }
             }
-        });
-
-        for (String fmt : ConfigSettings.ALLOWED_TEXT_FORMATS) {
-            if (!used.contains(fmt) && fmt.startsWith(builder.getRemaining())) {
-                builder.suggest(fmt);
-            }
-        }
-
-        return builder.buildFuture();
-    };
+            return suggestions;
+        };
+    }
 
     @Override
     public String getName() {
@@ -62,19 +49,17 @@ public class FormatSubcommand implements Subcommand {
     }
 
     @Override
-    public LiteralArgumentBuilder<CommandSourceStack> attach(CommandRoot parent) {
-        LiteralArgumentBuilder<CommandSourceStack> root = Commands.literal(NAME);
-        return root.then(buildArgChain(0));
+    public Command attach(CommandRoot parent) {
+        return Command.literal(NAME).child(buildArgChain(0));
     }
 
-    private ArgumentBuilder<CommandSourceStack, ?> buildArgChain(int index) {
+    private Command buildArgChain(int index) {
         String argName = "format" + index;
 
-        ArgumentBuilder<CommandSourceStack, ?> node = Commands.argument(argName, StringArgumentType.word())
-                .suggests(FMT_SUGGESTIONS);
+        Command node = Command.argument(Argument.ofWord(argName).suggests(formatSuggestions(index)));
 
-        if (index < ConfigSettings.ALLOWED_TEXT_FORMATS.size()) { // Allow up to 10 formats
-            node.then(buildArgChain(index + 1));
+        if (index < ConfigSettings.ALLOWED_TEXT_FORMATS.size()) {
+            node.child(buildArgChain(index + 1));
         }
 
         node.executes(ctx -> setFormats(ctx, index));
@@ -82,29 +67,36 @@ public class FormatSubcommand implements Subcommand {
     }
 
 
-    private int setFormats(CommandContext<CommandSourceStack> ctx, int maxIndex) {
+    private void setFormats(CommandContext ctx, int maxIndex) {
         List<String> formats = new ArrayList<>();
-        for (int i = 0; i <= maxIndex; i++) {
-            String key = "format" + i;
-            if (ctx.getNodes().stream().noneMatch(n -> n.getNode().getName().equals(key))) break;
-
-            String val = ctx.getArgument(key, String.class);
-
+        for (String val : collectFormats(ctx, maxIndex)) {
             if (!ConfigSettings.ALLOWED_TEXT_FORMATS.contains(val)) {
-                ctx.getSource().sendFailure(ItemModificationResult.failure("Invalid format: " + val).getMessage());
-                return 0;
+                ctx.sendFailure(ItemModificationResult.failure("Invalid format: " + val).getMessage());
+                return;
             }
 
             if (formats.contains(val)) {
-                ctx.getSource().sendFailure(ItemModificationResult.failure("Format repeated: " + val).getMessage());
-                return 0;
+                ctx.sendFailure(ItemModificationResult.failure("Format repeated: " + val).getMessage());
+                return;
             }
 
             formats.add(val);
         }
 
-        AOMCUtils.CONFIG.setFormatOptions(formats);
-        ctx.getSource().sendSuccess(ItemModificationResult.GENERAL_SUCCESS::getMessage, true);
-        return 1;
+        RenameitConfig.get().setFormatOptions(formats);
+        ctx.sendSuccess(ItemModificationResult.GENERAL_SUCCESS.getMessage());
+    }
+
+    /** The values of the {@code format0..formatMaxIndex} arguments that have been parsed so far. */
+    private static List<String> collectFormats(CommandContext ctx, int maxIndex) {
+        List<String> values = new ArrayList<>();
+        for (int i = 0; i <= maxIndex; i++) {
+            try {
+                values.add(ctx.getText("format" + i));
+            } catch (IllegalArgumentException absent) {
+                break;
+            }
+        }
+        return values;
     }
 }

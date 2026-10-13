@@ -1,18 +1,15 @@
 package com.gentheowl.aomc_utils.renaming.commands.customize;
 
-import com.gentheowl.aomc_utils.AOMCUtils;
 import com.gentheowl.aomc_utils.renaming.commands.CommandRoot;
 import com.gentheowl.aomc_utils.renaming.commands.Subcommand;
 import com.gentheowl.aomc_utils.renaming.item.ItemManager;
 import com.gentheowl.aomc_utils.renaming.item.ItemModificationResult;
 import com.gentheowl.aomc_utils.renaming.utils.ConfigSettings;
-import com.mojang.brigadier.arguments.BoolArgumentType;
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.mojang.brigadier.context.CommandContext;
-import me.lucko.fabric.api.permissions.v0.Permissions;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.server.level.ServerPlayer;
+import parliament.api.command.Argument;
+import parliament.api.command.Command;
+import parliament.api.command.CommandContext;
+import parliament.api.entity.Player;
+import parliament.api.permission.PermissionLevel;
 
 public class SignSubcommand implements Subcommand {
     private static final String NAME = ConfigSettings.SIGN;
@@ -20,11 +17,11 @@ public class SignSubcommand implements Subcommand {
     private static final String DESC  = "Sign the item so it can no longer be edited.";
 
     @Override
-    public LiteralArgumentBuilder<CommandSourceStack> attach(CommandRoot parent) {
-        return Commands.literal(NAME)
-                .requires(this::getRequiredPermission)
-                .executes(ctx -> { parent.sendHelp(ctx.getSource()); return 1; })
-                .then(Commands.argument("withText", BoolArgumentType.bool())
+    public Command attach(CommandRoot parent) {
+        return Command.literal(NAME)
+                .requiresPermission("renameit.customize.sign", PermissionLevel.EVERYONE)
+                .executes(parent::sendHelp)
+                .child(Command.argument(Argument.ofBoolean("withText"))
                         .executes(this::execute)
                 );
     }
@@ -33,18 +30,10 @@ public class SignSubcommand implements Subcommand {
     @Override public String getUsage()       { return USAGE; }
     @Override public String getDescription() { return DESC;  }
 
-    @SuppressWarnings("SameReturnValue")
-    private int execute(CommandContext<CommandSourceStack> ctx) {
-        CommandSourceStack src = ctx.getSource();
-        ServerPlayer player = src.getPlayer();
-        boolean withText = BoolArgumentType.getBool(ctx, "withText");
+    private void execute(CommandContext ctx) {
+        Player player = ctx.player().orElse(null);
+        boolean withText = ctx.getBoolean("withText");
         ItemModificationResult result = ItemManager.SIGN.validateAndRun(player, new ItemManager.SignParams(player, withText));
-        src.sendSuccess(result::getMessage, false);
-        return 1;
-    }
-
-    @Override
-    public boolean getRequiredPermission(CommandSourceStack src) {
-        return !AOMCUtils.CONFIG.shouldUsePermissionsAPI() || Permissions.check(src, "renameit.customize.sign");
+        ctx.sendSuccess(result.getMessage());
     }
 }

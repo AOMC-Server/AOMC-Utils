@@ -1,25 +1,22 @@
 package com.gentheowl.aomc_utils.election;
 
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.Style;
-import net.minecraft.server.level.ServerPlayer;
+import parliament.api.entity.Player;
+import parliament.api.event.Events;
+import parliament.api.text.Color;
+import parliament.api.text.Message;
 
 public class VoteEvents {
 
-    public static void register() {
-        ServerPlayConnectionEvents.JOIN.register((handler, a, b) -> {
-            handlePlayerJoin(handler.getPlayer());
-        });
+    public static void register(Events events) {
+        events.onPlayerJoin(VoteEvents::handlePlayerJoin);
     }
 
-    private static void handlePlayerJoin(ServerPlayer player) {
+    private static void handlePlayerJoin(Player player) {
         if (!VoteManager.isVotingEnabled()) return; // voting disabled
-        if (!VoteManager.eligibility.getOrDefault(player.getUUID(), false)) return; // not eligible
-        if (VoteManager.hasVoted(player.getUUID())) return; // already voted
+        if (!VoteManager.eligibility.getOrDefault(player.uuid(), false)) return; // not eligible
+        if (VoteManager.hasVoted(player.uuid())) return; // already voted
 
-        player.sendSystemMessage(Component.literal("A vote is currently open! Use /vote to participate.")
-                .setStyle(Style.EMPTY.withColor(ChatFormatting.GREEN)));
+        player.sendMessage(Message.literal("A vote is currently open! Use /vote to participate.")
+                .color(Color.GREEN));
     }
 }

@@ -1,50 +1,50 @@
 package com.gentheowl.aomc_utils.renaming.commands;
 
 import com.gentheowl.aomc_utils.renaming.utils.TextUtil;
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import java.util.List;
-import net.minecraft.ChatFormatting;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.network.chat.Component;
+import parliament.api.command.Command;
+import parliament.api.command.CommandContext;
+import parliament.api.permission.PermissionLevel;
+import parliament.api.text.Color;
+import parliament.api.text.Message;
 
 public abstract class CommandRoot {
     public abstract String getRootName();
     public abstract List<Subcommand> getSubcommands();
 
-    public void sendHelp(CommandSourceStack src) {
+    /** The permission node gating this root (resolved through the server's permission mod). */
+    protected abstract String getPermissionNode();
+
+    /** The operator tier that decides where no permission mod is installed. */
+    protected abstract PermissionLevel getPermissionFallback();
+
+    public void sendHelp(CommandContext ctx) {
         String root = this.getRootName();
         List<Subcommand> subcommands = this.getSubcommands();
 
-        src.sendSuccess(() -> TextUtil.header("/" + root + " Commands"), false);
+        ctx.sendSuccess(TextUtil.header("/" + root + " Commands"));
         for (Subcommand sub : subcommands) {
-            Component cmdLine = Component.literal("• ")
-                    .append(Component.literal("/" + root + " " + sub.getName())
-                            .withStyle(s -> s.withColor(ChatFormatting.AQUA)))
-                    .append(Component.literal(" " + sub.getUsage()).withStyle(s -> s.withColor(ChatFormatting.DARK_AQUA)));
-            src.sendSuccess(() -> cmdLine, false);
+            Message cmdLine = Message.literal("• ")
+                    .append(Message.literal("/" + root + " " + sub.getName()).color(Color.AQUA))
+                    .append(Message.literal(" " + sub.getUsage()).color(Color.DARK_AQUA));
+            ctx.sendSuccess(cmdLine);
 
-            Component descLine = Component.literal("    " + sub.getDescription())
-                    .withStyle(s -> s.withColor(ChatFormatting.GRAY).withItalic(true));
-            src.sendSuccess(() -> descLine, false);
+            Message descLine = Message.literal("    " + sub.getDescription())
+                    .color(Color.GRAY)
+                    .italic(true);
+            ctx.sendSuccess(descLine);
         }
     }
 
-    public LiteralArgumentBuilder<CommandSourceStack> register() {
-        LiteralArgumentBuilder<CommandSourceStack> root =
-                Commands.literal(getRootName())
-                        .requires(this::getRequiredPermissions)
-                        .executes(ctx -> {
-                            sendHelp(ctx.getSource());
-                            return 1;
-                        });
+    public Command register() {
+        Command root = Command.literal(getRootName())
+                .requiresPermission(getPermissionNode(), getPermissionFallback())
+                .executes(this::sendHelp);
 
         for (Subcommand sub : getSubcommands()) {
-            root.then(sub.attach(this));
+            root.child(sub.attach(this));
         }
 
         return root;
     }
-
-    protected abstract boolean getRequiredPermissions(CommandSourceStack source);
 }

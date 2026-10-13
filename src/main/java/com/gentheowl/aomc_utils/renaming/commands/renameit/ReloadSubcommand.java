@@ -3,9 +3,7 @@ package com.gentheowl.aomc_utils.renaming.commands.renameit;
 import com.gentheowl.aomc_utils.renaming.commands.CommandRoot;
 import com.gentheowl.aomc_utils.renaming.commands.Subcommand;
 import com.gentheowl.aomc_utils.renaming.utils.RenameitConfig;
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
+import parliament.api.command.Command;
 
 public class ReloadSubcommand implements Subcommand {
     private static final String NAME = "reload";
@@ -28,10 +26,7 @@ public class ReloadSubcommand implements Subcommand {
     }
 
     @Override
-    public LiteralArgumentBuilder<CommandSourceStack> attach(CommandRoot parent) {
-        return Commands.literal(NAME).executes((ctx) -> {
-            RenameitConfig.reload();
-            return 1;
-        });
+    public Command attach(CommandRoot parent) {
+        return Command.literal(NAME).executes((ctx) -> RenameitConfig.reload());
     }
 }

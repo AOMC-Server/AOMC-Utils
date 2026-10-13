@@ -1,58 +1,58 @@
 package com.gentheowl.aomc_utils.election.commands;
 
 import com.gentheowl.aomc_utils.election.VoteManager;
-import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
-import org.apache.logging.log4j.core.jmx.Server;
+import parliament.api.command.Argument;
+import parliament.api.command.Command;
+import parliament.api.command.CommandContext;
+import parliament.api.command.Commands;
+import parliament.api.entity.Player;
+import parliament.api.permission.PermissionLevel;
+import parliament.api.text.Message;
 
-import java.util.Objects;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
+import java.util.Optional;
 
 public class VoteCommand {
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        dispatcher.register(Commands.literal("vote")
-                .executes(ctx -> startVote(ctx.getSource()))
-                .then(Commands.literal("answer")
-                        .then(Commands.argument("choice", IntegerArgumentType.integer(1))
-                                .executes(ctx -> answerVote(ctx.getSource(), IntegerArgumentType.getInteger(ctx,"choice")))
+    public static void register(Commands commands) {
+        commands.register(Command.literal("vote")
+                .executes(VoteCommand::startVote)
+                .child(Command.literal("answer")
+                        .child(Command.argument(Argument.ofInteger("choice", 1, Integer.MAX_VALUE))
+                                .executes(ctx -> answerVote(ctx, ctx.getInteger("choice")))
                         )
                 )
-                .then(Commands.literal("skip")
-                        .executes(ctx -> skipVote(ctx.getSource())
-                        )
+                .child(Command.literal("skip")
+                        .executes(VoteCommand::skipVote)
                 )
-                .then(Commands.literal("toggle")
-                        .requires(Commands.hasPermission(Commands.LEVEL_ADMINS)) // admin only (level 2)
-                        .executes(ctx -> toggleVote(ctx.getSource()))
+                .child(Command.literal("toggle")
+                        .requires(PermissionLevel.ADMIN) // admin only (level 2)
+                        .executes(VoteCommand::toggleVote)
                 )
         );
     }
 
-    private static int answerVote(CommandSourceStack source, int choice) {
-        ServerPlayer player = source.getPlayer();
-        VoteManager.handleAnswer(Objects.requireNonNull(player), choice);
-        return 1;
+    private static Optional<Player> requirePlayer(CommandContext context) {
+        Optional<Player> player = context.player();
+        if (player.isEmpty()) {
+            context.sendFailure(Message.literal("Only players can use this command."));
+        }
+        return player;
     }
 
-    private static int skipVote(CommandSourceStack source) {
-        ServerPlayer player = source.getPlayer();
-        VoteManager.handleSkip(Objects.requireNonNull(player));
-        return 1;
+    private static void answerVote(CommandContext context, int choice) {
+        requirePlayer(context).ifPresent(player -> VoteManager.handleAnswer(player, choice));
     }
 
-    private static int startVote(CommandSourceStack source) {
-        ServerPlayer player = source.getPlayer();
-        VoteManager.startSession(Objects.requireNonNull(player));
-        return 1;
+    private static void skipVote(CommandContext context) {
+        requirePlayer(context).ifPresent(VoteManager::handleSkip);
     }
 
-    private static int toggleVote(CommandSourceStack source) {
+    private static void startVote(CommandContext context) {
+        requirePlayer(context).ifPresent(VoteManager::startSession);
+    }
+
+    private static void toggleVote(CommandContext context) {
         VoteManager.setVotingEnabled(!VoteManager.isVotingEnabled());
         String status = VoteManager.isVotingEnabled() ? "enabled" : "disabled";
-        source.sendSuccess(() -> Component.literal("Voting has been " + status + " by an administrator."), true);
-        return 1;
+        context.sendSuccess(Message.literal("Voting has been " + status + " by an administrator."));
     }
 }

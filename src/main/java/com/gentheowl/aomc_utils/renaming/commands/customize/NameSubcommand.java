@@ -1,20 +1,17 @@
 package com.gentheowl.aomc_utils.renaming.commands.customize;
 
-import com.gentheowl.aomc_utils.AOMCUtils;
 import com.gentheowl.aomc_utils.renaming.commands.CommandRoot;
 import com.gentheowl.aomc_utils.renaming.commands.Subcommand;
-import com.gentheowl.aomc_utils.renaming.item.ItemModificationResult;
 import com.gentheowl.aomc_utils.renaming.item.ItemManager;
+import com.gentheowl.aomc_utils.renaming.item.ItemModificationResult;
 import com.gentheowl.aomc_utils.renaming.utils.ConfigSettings;
 import com.gentheowl.aomc_utils.renaming.utils.TextUtil;
-import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.mojang.brigadier.context.CommandContext;
-import me.lucko.fabric.api.permissions.v0.Permissions;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
+import parliament.api.command.Argument;
+import parliament.api.command.Command;
+import parliament.api.command.CommandContext;
+import parliament.api.entity.Player;
+import parliament.api.permission.PermissionLevel;
+import parliament.api.text.Message;
 
 public class NameSubcommand implements Subcommand {
     private static final String NAME = ConfigSettings.MODIFY_NAME;
@@ -22,11 +19,11 @@ public class NameSubcommand implements Subcommand {
     private static final String DESCRIPTION = "Sets the display name of the item in hand, supports formatting codes.";
 
     @Override
-    public LiteralArgumentBuilder<CommandSourceStack> attach(CommandRoot parent) {
-        return Commands.literal(NAME)
-                .requires(this::getRequiredPermission)
-                .executes(ctx -> { parent.sendHelp(ctx.getSource()); return 1; })
-                .then(Commands.argument("text", StringArgumentType.greedyString())
+    public Command attach(CommandRoot parent) {
+        return Command.literal(NAME)
+                .requiresPermission("renameit.customize.name", PermissionLevel.EVERYONE)
+                .executes(parent::sendHelp)
+                .child(Command.argument(Argument.ofRemainingText("text"))
                         .executes(this::executeSetName)
                 );
     }
@@ -35,20 +32,12 @@ public class NameSubcommand implements Subcommand {
     @Override public String getUsage() { return USAGE; }
     @Override public String getDescription() { return DESCRIPTION; }
 
-    @SuppressWarnings("SameReturnValue")
-    private int executeSetName(CommandContext<CommandSourceStack> ctx) {
-        ServerPlayer player = ctx.getSource().getPlayer();
+    private void executeSetName(CommandContext ctx) {
+        Player player = ctx.player().orElse(null);
 
-        String raw = StringArgumentType.getString(ctx, "text");
-        Component formatted = TextUtil.parse(raw, ctx.getSource());
+        String raw = ctx.getText("text");
+        Message formatted = TextUtil.parse(raw);
         ItemModificationResult result = ItemManager.MODIFY_NAME.validateAndRun(player, formatted);
-        ctx.getSource().sendSuccess(result::getMessage, false);
-        return 1;
-    }
-
-    @Override
-    public boolean getRequiredPermission(CommandSourceStack src) {
-        return !AOMCUtils.CONFIG.shouldUsePermissionsAPI() || Permissions.check(src, "renameit.customize.name");
+        ctx.sendSuccess(result.getMessage());
     }
 }
-

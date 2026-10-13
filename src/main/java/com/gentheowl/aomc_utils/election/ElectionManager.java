@@ -1,21 +1,14 @@
 package com.gentheowl.aomc_utils.election;
 
 import com.gentheowl.aomc_utils.election.commands.VoteCommand;
-import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerPlayer;
+import parliament.api.Parliament;
 
 public class ElectionManager {
-    public static void initialize() {
-        VoteManager.loadConfig();
-        CommandRegistrationCallback.EVENT.register(((dispatcher, registry, env) -> {
-            VoteCommand.register(dispatcher);
-        }));
+    public static void initialize(Parliament parliament) {
+        VoteManager.loadConfig(parliament.configDirectory());
+        VoteCommand.register(parliament.commands());
+        VoteEvents.register(parliament.events());
 
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-            ServerPlayer player = handler.getPlayer();
-            VoteManager.cancelSession(player.getUUID());
-        });
+        parliament.events().onPlayerDisconnect(player -> VoteManager.cancelSession(player.uuid()));
     }
 }

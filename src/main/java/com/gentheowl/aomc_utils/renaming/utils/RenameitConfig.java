@@ -1,18 +1,15 @@
 package com.gentheowl.aomc_utils.renaming.utils;
 
-import com.gentheowl.aomc_utils.AOMCUtils;
-import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
-import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.world.item.component.ItemLore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
@@ -20,25 +17,34 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class RenameitConfig {
+    private static final Logger LOGGER = LoggerFactory.getLogger("aomc_utils");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve(AOMCUtils.MOD_ID);
-    private static final File CONFIG_FILE = new File(CONFIG_PATH.toFile(), "renameit.json");
+    private static final String CONFIG_SUBDIRECTORY = "aomc_utils";
+    private static final String CONFIG_FILE_NAME = "renameit.json";
+    public static final int MAX_LORE_LINES_CAP = 256;
 
     private int max_lore_lines;
     private List<String> format_options;
     private final Map<String, ConfigSettings.CommandEntry> command_data;
+    
+    // Kept in the JSON file format for compatibility
     private boolean use_permissions_api;
 
+    private static File configFile;
     private static RenameitConfig INSTANCE;
+
     public static RenameitConfig get() {
         if (INSTANCE == null) {
-            INSTANCE = createAndLoad();
+            throw new IllegalStateException("RenameitConfig has not been loaded yet; call createAndLoad(Path) first.");
         }
         return INSTANCE;
     }
 
     public static void reload() {
-        INSTANCE = createAndLoad();
+        if (configFile == null) {
+            throw new IllegalStateException("RenameitConfig has not been loaded yet; call createAndLoad(Path) first.");
+        }
+        INSTANCE = load();
     }
 
     public RenameitConfig(int max_lore_lines, List<String> format_options, Map<String, ConfigSettings.CommandEntry> command_data, boolean use_permissions_api) {
@@ -84,18 +90,24 @@ public class RenameitConfig {
     }
 
     /**
-     * Creates and loads the configuration from the file system.
+     * Creates and loads the configuration from the file system, remembering the
+     * given config directory for later saves and reloads.
      * If the config file doesn't exist, it creates a default one.
      * If the loaded config is invalid, it falls back to default values for the invalid parts.
      *
+     * @param configDirectory the global configuration directory (the {@code config} folder).
      * @return An instance of RenameitConfig.
      */
-    public static RenameitConfig createAndLoad() {
-        if (CONFIG_FILE.exists()) {
-            try (FileReader reader = new FileReader(CONFIG_FILE)) {
-                // Define the type for deserialization
-                Type configType = new TypeToken<RenameitConfig>() {}.getType();
-                RenameitConfig config = GSON.fromJson(reader, configType);
+    public static RenameitConfig createAndLoad(Path configDirectory) {
+        configFile = configDirectory.resolve(CONFIG_SUBDIRECTORY).resolve(CONFIG_FILE_NAME).toFile();
+        INSTANCE = load();
+        return INSTANCE;
+    }
+
+    private static RenameitConfig load() {
+        if (configFile.exists()) {
+            try (FileReader reader = new FileReader(configFile)) {
+                RenameitConfig config = GSON.fromJson(reader, RenameitConfig.class);
 
                 // It's possible for GSON to create a null object if the json is empty
                 if (config == null) {
@@ -104,7 +116,7 @@ public class RenameitConfig {
 
                 return validateAndFix(config);
             } catch (IOException | JsonSyntaxException e) {
-                AOMCUtils.LOGGER.error("Failed to read or parse config file, creating a default one.", e);
+                LOGGER.error("Failed to read or parse config file, creating a default one.", e);
                 return createDefaultConfig();
             }
         } else {
@@ -118,15 +130,15 @@ public class RenameitConfig {
     public void save() {
         try {
             // Ensure the parent directory exists
-            if (!CONFIG_FILE.getParentFile().exists()) {
-                CONFIG_FILE.getParentFile().mkdirs();
+            if (!configFile.getParentFile().exists()) {
+                configFile.getParentFile().mkdirs();
             }
             // Write the config to the file
-            try (FileWriter writer = new FileWriter(CONFIG_FILE)) {
+            try (FileWriter writer = new FileWriter(configFile)) {
                 GSON.toJson(this, writer);
             }
         } catch (IOException e) {
-            AOMCUtils.LOGGER.error("Could not save config file.", e);
+            LOGGER.error("Could not save config file.", e);
         }
     }
 
@@ -137,11 +149,11 @@ public class RenameitConfig {
      * @return A validated and potentially corrected RenameitConfig instance.
      */
     private static RenameitConfig validateAndFix(RenameitConfig loadedConfig) {
-        // validate permissions api usage
+        // Carried through for file compatibility; no longer consulted anywhere.
         boolean usingAPI = loadedConfig.shouldUsePermissionsAPI();
 
         // Validate max_lore_lines
-        int validMaxLoreLines = (loadedConfig.max_lore_lines() > 0 && loadedConfig.max_lore_lines <= ItemLore.MAX_LINES)
+        int validMaxLoreLines = (loadedConfig.max_lore_lines() > 0 && loadedConfig.max_lore_lines <= MAX_LORE_LINES_CAP)
                 ? loadedConfig.max_lore_lines()
                 : ConfigSettings.DEFAULT_LORE_AMOUNT;
 
@@ -187,7 +199,7 @@ public class RenameitConfig {
      * @return The default RenameitConfig instance.
      */
     private static RenameitConfig createDefaultConfig() {
-        AOMCUtils.LOGGER.info("Creating default config file.");
+        LOGGER.info("Creating default config file.");
         Map<String, ConfigSettings.CommandEntry> defaultCommandData = new HashMap<>();
         for (String key : ConfigSettings.ALLOWED_MODIFICATION_KEYS) {
             defaultCommandData.put(key, ConfigSettings.getDefaultCommandEntry(key));

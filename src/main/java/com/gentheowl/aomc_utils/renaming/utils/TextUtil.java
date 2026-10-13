@@ -1,72 +1,54 @@
 package com.gentheowl.aomc_utils.renaming.utils;
 
-import com.gentheowl.aomc_utils.AOMCUtils;
-import eu.pb4.placeholders.api.PlaceholderContext;
-import eu.pb4.placeholders.api.parsers.NodeParser;
-import eu.pb4.placeholders.api.parsers.ParserBuilder;
 import java.util.List;
-import java.util.regex.Pattern;
-import net.minecraft.ChatFormatting;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.FontDescription;
-import net.minecraft.network.chat.Style;
-import net.minecraft.resources.Identifier;
+import parliament.api.text.Color;
+import parliament.api.text.Format;
+import parliament.api.text.Message;
 
 public class TextUtil {
-    private static final NodeParser PARSER = getTextParser(AOMCUtils.CONFIG.format_options());
-    public static final FontDescription UNFIFORM_FONT = new FontDescription.Resource(Identifier.withDefaultNamespace("uniform"));
+    public static final String UNIFORM_FONT = "minecraft:uniform";
 
-    // Workaround for placeholder-api bug: <font:...> with an invalid ResourceLocation
-    // path produces a Component that NPEs during network encoding and kicks the player.
-    // Lowercase the tag value and strip any chars that aren't legal in a RL path.
-    private static final Pattern FONT_TAG = Pattern.compile("<font:([^>]+)>");
-
-    public static Component error(String msg) {
-        return Component.literal("Error: " + msg).withStyle(ChatFormatting.RED);
+    public static Message error(String msg) {
+        return Message.literal("Error: " + msg).color(Color.RED);
     }
 
-    public static Component success(String msg) {
-        return Component.literal(msg).withStyle(ChatFormatting.GREEN);
+    public static Message success(String msg) {
+        return Message.literal(msg).color(Color.GREEN);
     }
 
-    public static Component info(String msg) {
-        return Component.literal(msg).withStyle(ChatFormatting.YELLOW);
+    public static Message info(String msg) {
+        return Message.literal(msg).color(Color.YELLOW);
     }
 
-    public static Component parse(String input, CommandSourceStack src) {
-        String sanitized = FONT_TAG.matcher(input).replaceAll(m ->
-                "<font:" + m.group(1).toLowerCase().replaceAll("[^a-z0-9/._:-]", "_") + ">");
-        PlaceholderContext ctx = src.getEntity() != null
-                ? PlaceholderContext.of(src.getEntity())
-                : PlaceholderContext.of(src.getLevel());
-        return PARSER.parseComponent(sanitized, ctx.asParserContext());
+    public static Message parse(String input) {
+        return Message.userFormatted(input, configuredFormats());
     }
 
-    public static Component signature(String name) {
-        return Component.literal(" Signed by " + name).setStyle(Style.EMPTY.withFont(UNFIFORM_FONT).withColor(ChatFormatting.GRAY).withItalic(false));
+    public static Message signature(String name) {
+        return Message.literal(" Signed by " + name)
+                .font(UNIFORM_FONT)
+                .color(Color.GRAY)
+                .italic(false);
     }
 
-    public static Component header(String msg) {
-        return Component.literal(msg)
-                .withStyle(style -> style
-                        .withColor(ChatFormatting.GOLD)
-                        .withUnderlined(true)
-                );
+    public static Message header(String msg) {
+        return Message.literal(msg)
+                .color(Color.GOLD)
+                .underlined(true);
     }
 
-    private static NodeParser getTextParser(List<String> options) {
-        ParserBuilder builder = new ParserBuilder();
-        for (String opt : options) {
-            switch (opt) {
-                case "legacyColor" -> builder.legacyColor();
-                case "legacyAll" -> builder.legacyAll();
-                case "simplified" -> builder.simplifiedTextFormat();
-                case "markdown" -> builder.markdown();
-                default -> throw new IllegalArgumentException("Unknown format options for text parser: " + opt);
-            }
+    private static Format[] configuredFormats() {
+        List<String> options = RenameitConfig.get().format_options();
+        Format[] formats = new Format[options.size()];
+        for (int i = 0; i < options.size(); i++) {
+            formats[i] = switch (options.get(i)) {
+                case "legacyColor" -> Format.LEGACY_COLOR;
+                case "legacyAll" -> Format.LEGACY_ALL;
+                case "simplified" -> Format.SIMPLIFIED;
+                case "markdown" -> Format.MARKDOWN;
+                default -> throw new IllegalArgumentException("Unknown format options for text parser: " + options.get(i));
+            };
         }
-
-        return builder.build();
+        return formats;
     }
 }

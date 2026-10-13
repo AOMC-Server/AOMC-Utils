@@ -1,17 +1,15 @@
 package com.gentheowl.aomc_utils.election;
 
-import com.gentheowl.aomc_utils.AOMCUtils;
+import com.gentheowl.aomc_utils.AomcUtilsMod;
 import com.gentheowl.aomc_utils.election.data.BallotConfig;
 import com.gentheowl.aomc_utils.election.data.QuestionConfig;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonSyntaxException;
-import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.Style;
-import net.minecraft.server.level.ServerPlayer;
+import parliament.api.entity.Player;
+import parliament.api.text.Color;
+import parliament.api.text.Message;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,20 +21,19 @@ public class VoteManager {
     public static final Map<UUID, Boolean> eligibility = new HashMap<>();
     private static boolean votingEnabled = true;
 
-    // paths
-    private static final Path CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve(AOMCUtils.MOD_ID);
-    private static final Path BALLOT_FILE = CONFIG_DIR.resolve("ballot.json");
-    public static final Path RESULTS_DIR = CONFIG_DIR.resolve("results");
-    private static final Path ELIGIBILITY_FILE = CONFIG_DIR.resolve("eligibility.json");
+    private static Path configDir;
+    private static Path ballotFile;
+    public static Path RESULTS_DIR;
+    private static Path eligibilityFile;
 
     public static void loadEligibility() {
         try {
-            if (!Files.exists(ELIGIBILITY_FILE)) {
+            if (!Files.exists(eligibilityFile)) {
                 // create empty eligibility file
-                Files.writeString(ELIGIBILITY_FILE, "{}");
+                Files.writeString(eligibilityFile, "{}");
             }
             Gson gson = new Gson();
-            String json = Files.readString(ELIGIBILITY_FILE);
+            String json = Files.readString(eligibilityFile);
             Map<String, Boolean> map = gson.fromJson(json, Map.class);
             eligibility.clear();
             if (map != null) {
@@ -51,20 +48,25 @@ public class VoteManager {
         }
     }
 
-    public static void loadConfig() {
+    public static void loadConfig(Path globalConfigDir) {
+        configDir = globalConfigDir.resolve(AomcUtilsMod.MOD_ID);
+        ballotFile = configDir.resolve("ballot.json");
+        RESULTS_DIR = configDir.resolve("results");
+        eligibilityFile = configDir.resolve("eligibility.json");
+
         try {
-            Files.createDirectories(CONFIG_DIR);
+            Files.createDirectories(configDir);
             Files.createDirectories(RESULTS_DIR);
         } catch (IOException e) {
             System.err.println("Failed to create config directory: " + e.getMessage());
         }
 
-        if (!Files.exists(BALLOT_FILE)) {
+        if (!Files.exists(ballotFile)) {
             writeSampleConfig();
         }
 
         // read the ballot
-        try (var reader = Files.newBufferedReader(BALLOT_FILE)) {
+        try (var reader = Files.newBufferedReader(ballotFile)) {
             Gson gson = new Gson();
             ballot = gson.fromJson(reader, BallotConfig.class);
             if (ballot == null || ballot.getQuestions().isEmpty()) {
@@ -94,39 +96,39 @@ public class VoteManager {
         ));
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         try {
-            Files.writeString(BALLOT_FILE, gson.toJson(sample));
+            Files.writeString(ballotFile, gson.toJson(sample));
         } catch (IOException e) {
             System.err.println("Failed to write sample ballot config: " + e.getMessage());
         }
     }
 
-    public static void startSession(ServerPlayer player) {
+    public static void startSession(Player player) {
         if (!votingEnabled) {
-            player.sendSystemMessage(Component.literal("Voting is currently disabled by an administrator.")
-                    .setStyle(Style.EMPTY.withColor(ChatFormatting.RED)));
+            player.sendMessage(Message.literal("Voting is currently disabled by an administrator.")
+                    .color(Color.RED));
             return;
         }
 
-        UUID uuid = player.getUUID();
+        UUID uuid = player.uuid();
 
         // check eligibility
         if (!eligibility.getOrDefault(uuid, false)) {
-            player.sendSystemMessage(Component.literal("You are not eligible to vote (insufficient playtime).")
-                    .setStyle(Style.EMPTY.withColor(ChatFormatting.RED)));
+            player.sendMessage(Message.literal("You are not eligible to vote (insufficient playtime).")
+                    .color(Color.RED));
             return;
         }
 
         // already in-progress
         if (sessions.containsKey(uuid)) {
-            player.sendSystemMessage(Component.literal("You are already voting or finished voting!")
-                    .setStyle(Style.EMPTY.withColor(ChatFormatting.RED)));
+            player.sendMessage(Message.literal("You are already voting or finished voting!")
+                    .color(Color.RED));
             return;
         }
 
         // already voted (results file exists) — prevent another vote
         if (hasVoted(uuid)) {
-            player.sendSystemMessage(Component.literal("You have already submitted your vote and cannot start another one.")
-                    .setStyle(Style.EMPTY.withColor(ChatFormatting.RED)));
+            player.sendMessage(Message.literal("You have already submitted your vote and cannot start another one.")
+                    .color(Color.RED));
             return;
         }
 
@@ -135,22 +137,22 @@ public class VoteManager {
         session.sendNextQuestion();
     }
 
-    private static boolean isSessionInvalid(ServerPlayer player, VoteSession session) {
+    private static boolean isSessionInvalid(Player player, VoteSession session) {
         if (session == null) {
-            player.sendSystemMessage(Component.literal("You have no active vote session. Use /vote to start.").setStyle(Style.EMPTY.withColor(ChatFormatting.RED)));
+            player.sendMessage(Message.literal("You have no active vote session. Use /vote to start.").color(Color.RED));
             return true;
         }
         if (session.isExpired()) {
-            sessions.remove(player.getUUID());
-            player.sendSystemMessage(Component.literal("Vote session timed out. Use /vote to try again.").setStyle(Style.EMPTY.withColor(ChatFormatting.RED)));
+            sessions.remove(player.uuid());
+            player.sendMessage(Message.literal("Vote session timed out. Use /vote to try again.").color(Color.RED));
             return true;
         }
 
         return false;
     }
 
-    public static void handleAnswer(ServerPlayer player, int choice) {
-        UUID uuid = player.getUUID();
+    public static void handleAnswer(Player player, int choice) {
+        UUID uuid = player.uuid();
         VoteSession session = sessions.get(uuid);
         if (isSessionInvalid(player, session)) return;
 
@@ -164,8 +166,8 @@ public class VoteManager {
         }
     }
 
-    public static void handleSkip(ServerPlayer player) {
-        UUID uuid = player.getUUID();
+    public static void handleSkip(Player player) {
+        UUID uuid = player.uuid();
         VoteSession session = sessions.get(uuid);
         if (isSessionInvalid(player, session)) return;
 

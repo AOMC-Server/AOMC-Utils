@@ -11,21 +11,13 @@ base {
 }
 
 loom {
-    splitEnvironmentSourceSets()
-
     mods {
         "aomc_utils" {
             sourceSet sourceSets.main
-            sourceSet sourceSets.client
         }
     }
 }
 
-fabricApi {
-    configureDataGeneration {
-        client = false
-    }
-}
 
 repositories {
     // Add repositories to retrieve artifacts from in here.
@@ -39,29 +31,55 @@ repositories {
     }
     maven { url 'https://maven.wispforest.io/releases/' }
     mavenCentral()
+    // Parliament is published locally during development.
+    mavenLocal()
 }
 
 dependencies {
-    // To change the versions see the gradle.properties file
+    // Loom needs these to assemble the dev runtime; the mod's own code never
+    // touches them (enforced by verifyParliamentPurity).
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
-
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
-    implementation include("eu.pb4:placeholder-api:3.1.0-beta.1+26.2")
-    include(implementation('me.lucko:fabric-permissions-api:0.7.0'))
+    // The only API this mod is written against. The parliament jar is
+    // installed on the server separately (it is a mod, not bundled here).
+    implementation "com.gentheowl:parliament:${project.parliament_version}"
 }
+
+// The whole point of the Parliament migration: mod code imports nothing from
+// Minecraft, Mojang, Fabric, or Parliament internals. Fails the build if a
+// banned import sneaks back in.
+tasks.register('verifyParliamentPurity') {
+    def sourceDir = file('src/main/java')
+    inputs.dir sourceDir
+    doLast {
+        def banned = ['net.minecraft.', 'com.mojang.', 'net.fabricmc.', 'parliament.impl.',
+                      'eu.pb4.', 'me.lucko.']
+        def violations = []
+        sourceDir.eachFileRecurse(groovy.io.FileType.FILES) { f ->
+            if (!f.name.endsWith('.java')) return
+            f.readLines().eachWithIndex { line, i ->
+                def trimmed = line.trim()
+                if (trimmed.startsWith('import ') && banned.any { trimmed.substring(7).startsWith(it) }) {
+                    violations << "${f.path}:${i + 1}: ${trimmed}"
+                }
+            }
+        }
+        if (!violations.isEmpty()) {
+            throw new GradleException("Mojang/Fabric imports are banned; use parliament.api instead:\n"
+                    + violations.join('\n'))
+        }
+    }
+}
+check.dependsOn 'verifyParliamentPurity'
 
 processResources {
     inputs.property "version", project.version
-    inputs.property "minecraft_version", project.minecraft_version
-    inputs.property "loader_version", project.loader_version
     filteringCharset "UTF-8"
 
     filesMatching("fabric.mod.json") {
-        expand "version": project.version,
-                "minecraft_version": project.minecraft_version,
-                "loader_version": project.loader_version
+        expand "version": project.version
     }
 }
 

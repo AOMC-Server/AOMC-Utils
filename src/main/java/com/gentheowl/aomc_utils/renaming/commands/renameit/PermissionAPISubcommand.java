@@ -1,16 +1,18 @@
 package com.gentheowl.aomc_utils.renaming.commands.renameit;
 
-import com.gentheowl.aomc_utils.AOMCUtils;
 import com.gentheowl.aomc_utils.renaming.commands.CommandRoot;
 import com.gentheowl.aomc_utils.renaming.commands.Subcommand;
 import com.gentheowl.aomc_utils.renaming.item.ItemModificationResult;
-import com.mojang.brigadier.arguments.BoolArgumentType;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.mojang.brigadier.context.CommandContext;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
+import com.gentheowl.aomc_utils.renaming.utils.RenameitConfig;
+import parliament.api.command.Argument;
+import parliament.api.command.Command;
+import parliament.api.command.CommandContext;
 
+/**
+ * Still writes the {@code use_permissions_api} config flag, but the flag is
+ * decorative since the Parliament port: permission nodes are always checked,
+ * with an operator-tier fallback when no permission mod is installed.
+ */
 public class PermissionAPISubcommand implements Subcommand {
     private static final String NAME = "use_permission_api";
     private static final String DESC = "Toggle whether or not to use the permissions API.";
@@ -32,17 +34,15 @@ public class PermissionAPISubcommand implements Subcommand {
     }
 
     @Override
-    public LiteralArgumentBuilder<CommandSourceStack> attach(CommandRoot parent) {
-        return Commands.literal(NAME)
-                .then(Commands.argument("value", BoolArgumentType.bool())
-                        .executes(this::setMaxLoreLines));
+    public Command attach(CommandRoot parent) {
+        return Command.literal(NAME)
+                .child(Command.argument(Argument.ofBoolean("value"))
+                        .executes(this::setPermissionAPI));
     }
 
-    @SuppressWarnings("SameReturnValue")
-    private int setMaxLoreLines(CommandContext<CommandSourceStack> ctx) {
-        boolean value = BoolArgumentType.getBool(ctx, "value");
-        AOMCUtils.CONFIG.setPermissionAPIenabled(value);
-        ctx.getSource().sendSuccess(ItemModificationResult.GENERAL_SUCCESS::getMessage, true);
-        return 1;
+    private void setPermissionAPI(CommandContext ctx) {
+        boolean value = ctx.getBoolean("value");
+        RenameitConfig.get().setPermissionAPIenabled(value);
+        ctx.sendSuccess(ItemModificationResult.GENERAL_SUCCESS.getMessage());
     }
 }

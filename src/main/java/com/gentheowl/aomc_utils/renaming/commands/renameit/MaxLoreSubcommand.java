@@ -1,16 +1,13 @@
 package com.gentheowl.aomc_utils.renaming.commands.renameit;
 
-import com.gentheowl.aomc_utils.AOMCUtils;
 import com.gentheowl.aomc_utils.renaming.commands.CommandRoot;
 import com.gentheowl.aomc_utils.renaming.commands.Subcommand;
 import com.gentheowl.aomc_utils.renaming.item.ItemModificationResult;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.mojang.brigadier.context.CommandContext;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
+import com.gentheowl.aomc_utils.renaming.utils.RenameitConfig;
+import parliament.api.command.Argument;
+import parliament.api.command.Command;
+import parliament.api.command.CommandContext;
 
-@SuppressWarnings("ALL")
 public class MaxLoreSubcommand implements Subcommand {
     private static final String NAME = "max_lore";
     private static final String DESC = "Allows you to set the max lore (in lines).";
@@ -32,16 +29,15 @@ public class MaxLoreSubcommand implements Subcommand {
     }
 
     @Override
-    public LiteralArgumentBuilder<CommandSourceStack> attach(CommandRoot parent) {
-        return Commands.literal(NAME)
-                .then(Commands.argument("lines", IntegerArgumentType.integer())
+    public Command attach(CommandRoot parent) {
+        return Command.literal(NAME)
+                .child(Command.argument(Argument.ofInteger("lines"))
                         .executes(this::setMaxLoreLines));
     }
 
-    private int setMaxLoreLines(CommandContext<CommandSourceStack> ctx) {
-        int lines = IntegerArgumentType.getInteger(ctx, "lines");
-        AOMCUtils.CONFIG.setMaxLoreLines(lines);
-        ctx.getSource().sendSuccess(ItemModificationResult.GENERAL_SUCCESS::getMessage, true);
-        return 1;
+    private void setMaxLoreLines(CommandContext ctx) {
+        int lines = ctx.getInteger("lines");
+        RenameitConfig.get().setMaxLoreLines(lines);
+        ctx.sendSuccess(ItemModificationResult.GENERAL_SUCCESS.getMessage());
     }
 }

@@ -1,12 +1,9 @@
 package com.gentheowl.aomc_utils.renaming.commands.customize;
 
-import com.gentheowl.aomc_utils.AOMCUtils;
 import com.gentheowl.aomc_utils.renaming.commands.CommandRoot;
 import com.gentheowl.aomc_utils.renaming.commands.Subcommand;
-import com.gentheowl.aomc_utils.renaming.utils.ConfigSettings;
-import me.lucko.fabric.api.permissions.v0.Permissions;
-import net.minecraft.commands.CommandSourceStack;
 import java.util.List;
+import parliament.api.permission.PermissionLevel;
 
 public class CustomizeCommand extends CommandRoot {
     private CustomizeCommand() {}
@@ -34,7 +31,12 @@ public class CustomizeCommand extends CommandRoot {
     }
 
     @Override
-    protected boolean getRequiredPermissions(CommandSourceStack source) {
-        return !AOMCUtils.CONFIG.shouldUsePermissionsAPI() || Permissions.check(source, "renameit.customize");
+    protected String getPermissionNode() {
+        return "renameit.customize";
+    }
+
+    @Override
+    protected PermissionLevel getPermissionFallback() {
+        return PermissionLevel.EVERYONE;
     }
 }
