@@ -1,6 +1,7 @@
 package com.gentheowl.aomc_utils.debug;
 
 import parliament.api.Parliament;
+import parliament.api.block.BlockTypes;
 import parliament.api.command.Command;
 import parliament.api.command.CommandContext;
 import parliament.api.permission.PermissionLevel;
@@ -29,9 +30,9 @@ public final class RestartDetectorCommand {
         // The nightly restart window: 23:45-00:05 UTC.
         enable(23, 45, 20);
 
-        parliament.blocks().onBlockTick("minecraft:daylight_detector", (world, pos) -> {
+        parliament.blocks().onBlockTick(BlockTypes.DAYLIGHT_DETECTOR, (world, pos) -> {
             if (!enabled) return false;
-            boolean onNetherite = world.blockId(pos.offset(0, -1, 0)).equals("minecraft:netherite_block");
+            boolean onNetherite = world.blockId(pos.offset(0, -1, 0)).equals(BlockTypes.NETHERITE_BLOCK);
             if (!onNetherite) return false;
             world.setBlockProperties(pos, Map.of("power", Integer.toString(currentPower())));
             return true;

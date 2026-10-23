@@ -3,6 +3,7 @@ package com.gentheowl.aomc_utils.progression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import parliament.api.Parliament;
+import parliament.api.block.BlockTypes;
 import parliament.api.entity.Player;
 import parliament.api.event.BlockUseEvent;
 import parliament.api.world.Position;
@@ -33,7 +34,7 @@ final class OlympusPeak {
 
         parliament.events().onBlockUse(event -> {
             if (event.hand() != BlockUseEvent.Hand.MAIN_HAND
-                    || !event.blockId().equals("minecraft:beacon")) {
+                    || !event.blockId().equals(BlockTypes.BEACON)) {
                 return;
             }
             Player player = event.player();

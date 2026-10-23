@@ -1,6 +1,7 @@
 package com.gentheowl.aomc_utils.progression;
 
 import parliament.api.Parliament;
+import parliament.api.block.BlockTypes;
 import parliament.api.entity.Player;
 import parliament.api.world.Position;
 import parliament.api.world.Vector;
@@ -105,10 +106,10 @@ final class DragonEggCeremony {
 
     private void placeDragonEgg() {
         Position eggPos = beaconPos.offset(0, 1, 0);
-        if (world.blockId(eggPos).equals("minecraft:air")
-                || world.blockId(eggPos).equals("minecraft:cave_air")
-                || world.blockId(eggPos).equals("minecraft:water")) {
-            world.setBlock(eggPos, "minecraft:dragon_egg");
+        if (world.blockId(eggPos).equals(BlockTypes.AIR)
+                || world.blockId(eggPos).equals(BlockTypes.CAVE_AIR)
+                || world.blockId(eggPos).equals(BlockTypes.WATER)) {
+            world.setBlock(eggPos, BlockTypes.DRAGON_EGG);
         }
     }
 
