@@ -1,5 +1,6 @@
 package com.gentheowl.aomc_utils;
 
+import com.gentheowl.aomc_utils.chat.ColorCommand;
 import com.gentheowl.aomc_utils.debug.RestartDetectorCommand;
 import com.gentheowl.aomc_utils.election.ElectionManager;
 import com.gentheowl.aomc_utils.motd.MotdManager;
@@ -26,6 +27,7 @@ public final class AomcUtilsMod implements ParliamentMod {
         ElectionManager.initialize(parliament);
         CommandRegistry.initialize(parliament);
         RestartDetectorCommand.register(parliament);
+        ColorCommand.register(parliament);
 
         parliament.events().onServerStarted(server ->
                 MotdManager.initialize(server, parliament.configDirectory()));
